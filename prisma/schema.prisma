@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Cliente {
+  id          Int         @id @default(autoincrement())
+  nombre      String      @unique
+  direccion   String
+  telefono    String
+  cedula      String
+  email       String      @unique
+  actividades Actividad[]
+
+  @@map("clientes")
+}
+
+model Actividad {
+  id                   Int          @id @default(autoincrement())
+  descripcion          String
+  direccion            String
+  cantidadMaterial     Int
+  horaInicio           DateTime
+  horaFin              DateTime?
+  clienteId            Int
+  clientes             Cliente      @relation(fields: [clienteId], references: [id])
+  historial            historial[]
+  maquinariasActividad Maquinaria[] @relation("ActividadToMaquinaria")
+
+  @@map("actividades")
+}
+
+model Maquinaria {
+  id                    Int         @id @default(autoincrement())
+  tipo                  String
+  estado                String
+  empleadoId            Int
+  placa                 String
+  horaDisponible        DateTime?
+  historial             historial[]
+  empleados             Empleado    @relation(fields: [empleadoId], references: [id])
+  actividadesMaquinaria Actividad[] @relation("ActividadToMaquinaria")
+
+  @@map("maquinarias")
+}
+
+model Empleado {
+  id          Int          @id @default(autoincrement())
+  nombre      String
+  telefono    String
+  cedula      String
+  email       String       @unique
+  rol         String
+  password    String
+  maquinarias Maquinaria[]
+
+  @@map("empleados")
+}
+
+model historial {
+  id                Int        @id @default(autoincrement())
+  actividadId       Int
+  maquinariaId      Int
+  horaInicioTrabajo DateTime
+  horaFinTrabajo    DateTime
+  actividades       Actividad  @relation(fields: [actividadId], references: [id], onDelete: Cascade)
+  maquinarias       Maquinaria @relation(fields: [maquinariaId], references: [id], onDelete: Cascade)
+
+  @@map("historial")
+}
