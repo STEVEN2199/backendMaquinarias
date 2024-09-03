@@ -94,5 +94,25 @@ router.post('/clienteAct', async (req, res) => {
     res.json({ clienteId, actividades: updatedActividades });
 });
 
+// Endpoint para crear clientes
+router.post("/crearCliente", async (req, res) => {
+    const { nombre, direccion, telefono, cedula, email } = req.body;
+
+    try {
+        const newClient = await prisma.cliente.create({
+            data: {
+                nombre,
+                direccion,
+                telefono,
+                cedula,
+                email
+            },
+        });
+        res.json(newClient);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 export default router;
