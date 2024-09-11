@@ -4,121 +4,202 @@ import { PrismaClient } from "@prisma/client";
 const router = Router();
 const prisma = new PrismaClient();
 
-router.get('/actividadesPorFecha', async (req, res) => {
-    const fecha = req.query.fecha;
+router.get("/actividadesPorFecha", async (req, res) => {
+  const fecha = req.query.fecha;
 
-    try {
-        const actividades = await prisma.actividad.findMany({
-            where: {
-                horaInicio: {
-                    gte: new Date(`${fecha}T00:00:00.000Z`),
-                    lte: new Date(`${fecha}T23:59:59.999Z`)
-                }
-            },
-            include: {
-                clientes: true,
-                historial: {
-                    include: {
-                        maquinarias: true
-                    }
-                }
-            }
-        });
+  try {
+    const actividades = await prisma.actividad.findMany({
+      where: {
+        horaInicio: {
+          gte: new Date(`${fecha}T00:00:00.000Z`),
+          lte: new Date(`${fecha}T23:59:59.999Z`),
+        },
+      },
+      include: {
+        clientes: true,
+        historial: {
+          include: {
+            maquinarias: true,
+          },
+        },
+      },
+    });
 
-        res.json(actividades);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    res.json(actividades);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-router.get('/actividadesPorFechaHora', async (req, res) => {
-    const { fecha, hora } = req.query;
+router.get("/actividadesPorFechaHora", async (req, res) => {
+  const { fecha, hora } = req.query;
 
-    // Combina la fecha y la hora en un objeto Date
-    const fechaHora = new Date(`${fecha}T${hora}:00.000Z`);
+  // Combina la fecha y la hora en un objeto Date
+  const fechaHora = new Date(`${fecha}T${hora}:00.000Z`);
 
-    try {
-        const actividades = await prisma.actividad.findMany({
-            where: {
-                horaInicio: {
-                    gte: new Date(`${fecha}T00:00:00.000Z`),
-                    lte: fechaHora
-                }
-            },
-            include: {
-                clientes: true,
-                historial: {
-                    include: {
-                        maquinarias: true
-                    }
-                }
-            }
-        });
+  try {
+    const actividades = await prisma.actividad.findMany({
+      where: {
+        horaInicio: {
+          gte: new Date(`${fecha}T00:00:00.000Z`),
+          lte: fechaHora,
+        },
+      },
+      include: {
+        clientes: true,
+        historial: {
+          include: {
+            maquinarias: true,
+          },
+        },
+      },
+    });
 
-        res.json(actividades);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
+    res.json(actividades);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
-router.get('/maquinariasPorFecha', async (req, res) => {
-    const { fecha } = req.query;
+router.get("/maquinariasPorFecha", async (req, res) => {
+  const { fecha } = req.query;
 
-    if (!fecha) {
-        return res.status(400).json({ error: 'La fecha es un parámetro obligatorio.' });
+  if (!fecha) {
+    return res
+      .status(400)
+      .json({ error: "La fecha es un parámetro obligatorio." });
+  }
+
+  try {
+    // Convertir la fecha a un objeto Date para manejar la comparación en la consulta
+    const fechaDate = new Date(fecha);
+    if (isNaN(fechaDate.getTime())) {
+      return res
+        .status(400)
+        .json({ error: "La fecha proporcionada no es válida." });
     }
 
-    try {
-        // Convertir la fecha a un objeto Date para manejar la comparación en la consulta
-        const fechaDate = new Date(fecha);
-        if (isNaN(fechaDate.getTime())) {
-            return res.status(400).json({ error: 'La fecha proporcionada no es válida.' });
-        }
+    // Obtener todas las maquinarias sin relaciones y filtrar por la fecha
+    const maquinarias = await prisma.maquinaria.findMany({
+      where: {
+        horaDisponible: {
+          gte: new Date(`${fecha}T00:00:00.000Z`),
+          lte: new Date(`${fecha}T23:59:59.999Z`),
+        },
+      },
+      select: {
+        id: true,
+        tipo: true,
+        estado: true,
+        placa: true,
+        horaDisponible: true,
+      },
+    });
 
-        // Obtener todas las maquinarias sin relaciones y filtrar por la fecha
-        const maquinarias = await prisma.maquinaria.findMany({
-            where: {
-                horaDisponible: {
-                    gte: new Date(`${fecha}T00:00:00.000Z`),
-                    lte: new Date(`${fecha}T23:59:59.999Z`)
-                }
-            },
-            select: {
-                id: true,
-                tipo: true,
-                estado: true,
-                placa: true,
-                horaDisponible: true
-            }
-        });
-
-        res.json(maquinarias);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
+    res.json(maquinarias);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-router.get('/maquinariasTotal', async (req, res) => {
-    try {
-        // Consulta para obtener todas las maquinarias, seleccionando solo los campos propios de la entidad
-        const maquinarias = await prisma.maquinaria.findMany({
-            select: {
-                id: true,
-                tipo: true,
-                estado: true,
-                empleadoId: true,
-                placa: true,
-                horaDisponible: true
-            }
-        });
+router.get("/maquinariasTotal", async (req, res) => {
+  try {
+    // Consulta para obtener todas las maquinarias, seleccionando solo los campos propios de la entidad
+    const maquinarias = await prisma.maquinaria.findMany({
+      select: {
+        id: true,
+        tipo: true,
+        estado: true,
+        empleadoId: true,
+        placa: true,
+        horaDisponible: true,
+      },
+    });
 
-        // Enviar la respuesta en formato JSON
-        res.json(maquinarias);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: error.message });
-    }
+    // Enviar la respuesta en formato JSON
+    res.json(maquinarias);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/actividadesSemana", async (req, res) => {
+  const { fechaInicio } = req.query;
+
+  if (!fechaInicio) {
+    return res.status(400).json({
+      error: "Debe proporcionar una fecha de inicio en el formato YYYY-MM-DD",
+    });
+  }
+
+  try {
+    const startDate = new Date(fechaInicio);
+    const dayOfWeek = startDate.getDay(); // 0 (Domingo) to 6 (Sábado)
+
+    // Obtener el último día de la semana laboral (Sábado)
+    const endOfWeek = new Date(startDate);
+    endOfWeek.setDate(startDate.getDate() + (6 - dayOfWeek));
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const actividades = await prisma.actividad.findMany({
+      where: {
+        horaInicio: {
+          gte: startDate,
+          lte: endOfWeek,
+        },
+      },
+      include: {
+        clientes: true,
+        historial: {
+          include: {
+            maquinarias: true,
+          },
+        },
+      },
+    });
+
+    res.json(actividades);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get("/actividadesMes", async (req, res) => {
+  const { fechaInicio } = req.query;
+  const { fechaFin } = req.query;
+
+  if (!fechaInicio) {
+    return res.status(400).json({
+      error: "Debe proporcionar una fecha de inicio en el formato YYYY-MM-DD",
+    });
+  }
+
+  try {
+    const actividades = await prisma.actividad.findMany({
+      where: {
+        horaInicio: {
+          gte: new Date(fechaInicio).toISOString(),
+          lte: new Date(fechaFin).toISOString(),
+        },
+      },
+      include: {
+        clientes: true,
+        historial: {
+          include: {
+            maquinarias: true,
+          },
+        },
+      },
+    });
+
+    res.json(actividades);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 export default router;
